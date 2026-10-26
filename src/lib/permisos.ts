@@ -40,3 +40,11 @@ export const NOMBRE_ROL: Record<Rol, string> = {
   profesional: "Profesional",
   formadora: "Formadora",
 };
+
+/** Qué puede hacer cada rol, en lenguaje llano (para el formulario de equipo). */
+export const DESCRIPCION_ROL: Record<Rol, string> = {
+  admin: "Todo el CRM, incluida la gestión del equipo.",
+  recepcion: "Agenda, clientas y pedidos.",
+  profesional: "Ve la agenda y las fichas de clientas.",
+  formadora: "Cursos y fichas de alumnas.",
+};

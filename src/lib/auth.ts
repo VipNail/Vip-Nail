@@ -1,15 +1,34 @@
 import "server-only";
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
+import { and, eq } from "drizzle-orm";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { nuevoId } from "@/db/columnas";
 
+/**
+ * Orígenes desde los que se acepta el login: la dirección oficial y su variante con o sin «www».
+ * La proxy ya redirige www → dominio raíz; esto es la red de seguridad si la redirección no llega.
+ */
+function origenesDeConfianza(): string[] {
+  const base = process.env.BETTER_AUTH_URL;
+  if (!base) return [];
+  try {
+    const url = new URL(base);
+    const sinWww = url.host.replace(/^www\./, ""); // host incluye el puerto si lo hay
+    return [`${url.protocol}//${sinWww}`, `${url.protocol}//www.${sinWww}`];
+  } catch {
+    return [];
+  }
+}
+
 export const auth = betterAuth({
   appName: "VIP Nail Studio",
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
+  trustedOrigins: origenesDeConfianza(),
   database: drizzleAdapter(db, {
     provider: "mysql",
     schema: {
@@ -37,6 +56,22 @@ export const auth = betterAuth({
     useSecureCookies: process.env.NODE_ENV === "production",
   },
   telemetry: { enabled: false },
+  databaseHooks: {
+    session: {
+      create: {
+        // Una persona del equipo desactivada no puede iniciar sesión.
+        // (Las cuentas sin ficha de equipo —clientas, más adelante— no se ven afectadas.)
+        before: async (s) => {
+          const [baja] = await db
+            .select({ id: schema.staff.id })
+            .from(schema.staff)
+            .where(and(eq(schema.staff.userId, s.userId), eq(schema.staff.activo, false)))
+            .limit(1);
+          if (baja) throw new APIError("FORBIDDEN", { message: "Cuenta desactivada" });
+        },
+      },
+    },
+  },
   plugins: [nextCookies()], // debe ir el último
 });
 
