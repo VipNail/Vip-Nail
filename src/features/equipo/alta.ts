@@ -3,6 +3,7 @@ import { count, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { actividad, staff, user, type Rol } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { NOMBRE_ROL } from "@/lib/permisos";
 
 export async function hayAdmin(): Promise<boolean> {
   const [fila] = await db.select({ n: count() }).from(staff).where(eq(staff.rol, "admin"));
@@ -18,6 +19,7 @@ export async function crearMiembroEquipo(datos: {
   email: string;
   password: string;
   rol: Rol;
+  colorAgenda?: string;
   creadoPor?: string;
 }) {
   const ctx = await auth.$context;
@@ -31,17 +33,28 @@ export async function crearMiembroEquipo(datos: {
     { name: datos.nombre, email, emailVerified: true },
     { method: "admin" },
   );
-  await ctx.internalAdapter.linkAccount({
-    userId: nuevo.id,
-    providerId: "credential",
-    accountId: nuevo.id,
-    password: hash,
-  });
-  await db.insert(staff).values({ userId: nuevo.id, nombre: datos.nombre, rol: datos.rol });
+  try {
+    await ctx.internalAdapter.linkAccount({
+      userId: nuevo.id,
+      providerId: "credential",
+      accountId: nuevo.id,
+      password: hash,
+    });
+    await db.insert(staff).values({
+      userId: nuevo.id,
+      nombre: datos.nombre,
+      rol: datos.rol,
+      ...(datos.colorAgenda ? { colorAgenda: datos.colorAgenda } : {}),
+    });
+  } catch (e) {
+    // Sin ficha de equipo la cuenta no sirve: se deshace para poder repetir el alta.
+    await db.delete(user).where(eq(user.id, nuevo.id));
+    throw e;
+  }
   await db.insert(actividad).values({
     userId: datos.creadoPor ?? nuevo.id,
     tipo: "staff.alta",
-    descripcion: `Alta de ${datos.nombre} (${datos.rol})`,
+    descripcion: `Alta en el equipo: ${datos.nombre} (${NOMBRE_ROL[datos.rol]})`,
   });
   return nuevo.id;
 }
