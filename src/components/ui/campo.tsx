@@ -30,3 +30,31 @@ export function Aviso({ children, tipo = "error" }: { children: React.ReactNode;
     </p>
   );
 }
+
+export function Selector({
+  etiqueta,
+  children,
+  ...props
+}: ComponentProps<"select"> & { etiqueta: string }) {
+  return (
+    <label className="flex flex-col gap-1 text-sm">
+      <span className="font-medium">{etiqueta}</span>
+      <select
+        {...props}
+        className="h-12 rounded-lg border border-borde bg-superficie px-3 text-base outline-none focus:border-marca"
+      >
+        {children}
+      </select>
+    </label>
+  );
+}
+
+/** Botón secundario (borde, sin relleno). */
+export function BotonSecundario({ className = "", ...props }: ComponentProps<"button">) {
+  return (
+    <button
+      {...props}
+      className={`h-12 rounded-full border border-marca px-6 font-medium text-marca hover:bg-superficie disabled:opacity-50 ${className}`}
+    />
+  );
+}
