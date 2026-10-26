@@ -6,13 +6,11 @@ const nextConfig: NextConfig = {
   // Paquetes de servidor que no deben empaquetarse
   serverExternalPackages: ["mysql2"],
   poweredByHeader: false,
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
+  // Hostinger limita los procesos simultáneos (NPROC): build con Webpack (ver package.json),
+  // sin worker aparte y con un solo hilo de trabajo para no abrir procesos de más.
+  experimental: {
+    webpackBuildWorker: false,
+    cpus: 1,
   },
   async headers() {
     return [
