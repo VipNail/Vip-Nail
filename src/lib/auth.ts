@@ -7,6 +7,7 @@ import { nextCookies } from "better-auth/next-js";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { nuevoId } from "@/db/columnas";
+import { googleActivo } from "./proveedores";
 
 /**
  * Orígenes desde los que se acepta el login: la dirección oficial y su variante con o sin «www».
@@ -46,6 +47,22 @@ export const auth = betterAuth({
     disableSignUp: true,
     // DEBT: recuperación de contraseña por email cuando esté el SMTP (semana 1).
   },
+  socialProviders: googleActivo
+    ? {
+        google: {
+          clientId: process.env.GOOGLE_CLIENT_ID!,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+          prompt: "select_account",
+          // DEBT: de momento Google solo sirve para entrar con una cuenta que ya existe (equipo).
+          // El registro de clientas/alumnas con Google se abrirá con su área de cuenta.
+          disableSignUp: true,
+        },
+      }
+    : undefined,
+  account: {
+    // Si el email de Google coincide con una cuenta ya dada de alta (y verificada), se enlazan solas.
+    accountLinking: { enabled: true, trustedProviders: ["google"] },
+  },
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 días
     updateAge: 60 * 60 * 24, // renueva una vez al día
@@ -67,7 +84,7 @@ export const auth = betterAuth({
             .from(schema.staff)
             .where(and(eq(schema.staff.userId, s.userId), eq(schema.staff.activo, false)))
             .limit(1);
-          if (baja) throw new APIError("FORBIDDEN", { message: "Cuenta desactivada" });
+          if (baja) throw new APIError("FORBIDDEN", { code: "CUENTA_DESACTIVADA", message: "Cuenta desactivada" });
         },
       },
     },
