@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+/* Colores corporativos de la clienta + derivados de diseño.
+ * Fuente: claude/diseno/tokens.css (diseno-vipnails). Tipografías, espacios y radios: pendientes. */
+:root {
+  /* Corporativos */
+  --vn-verde: #123c36;
+  --vn-beige: #e4ddd2;
+  --vn-beige-claro: #e7ded4;
+  --vn-negro: #1c1c1c;
+  --vn-dorado: #c7a84e;
+  --vn-salvia: #7f9a8d;
+  /* Derivados */
+  --vn-verde-oscuro: #0d2e29;
+  --vn-dorado-texto: #725e24;
+  --vn-salvia-texto: #50655b;
+  --vn-superficie: #f7f3ee;
+  --vn-error: #9b2c2c;
+}
+
+/* Roles → utilidades de Tailwind: bg-fondo, text-marca, border-borde, etc.
+ * El dorado (acento) nunca como texto sobre fondo claro: usar text-acento-texto. */
+@theme inline {
+  --color-fondo: var(--vn-beige-claro);
+  --color-fondo-alterno: var(--vn-beige);
+  --color-superficie: var(--vn-superficie);
+  --color-texto: var(--vn-negro);
+  --color-texto-suave: var(--vn-salvia-texto);
+  --color-marca: var(--vn-verde);
+  --color-marca-hover: var(--vn-verde-oscuro);
+  --color-sobre-marca: var(--vn-beige-claro);
+  --color-acento: var(--vn-dorado);
+  --color-acento-texto: var(--vn-dorado-texto);
+  --color-borde: var(--vn-salvia);
+  --color-error: var(--vn-error);
+  --color-foco: var(--vn-dorado);
+  /* DEBT: tipografías provisionales hasta la muestra de estilos de diseño */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
