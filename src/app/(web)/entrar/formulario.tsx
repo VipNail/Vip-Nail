@@ -21,7 +21,9 @@ export function FormularioEntrar() {
       setError(
         error.status === 429
           ? "Demasiados intentos. Espera un minuto y vuelve a probar."
-          : "Email o contraseña incorrectos.",
+          : error.status === 403 && error.message === "Cuenta desactivada"
+            ? "Tu cuenta está desactivada. Habla con administración."
+            : "Email o contraseña incorrectos.",
       );
       setEnviando(false);
       return;
