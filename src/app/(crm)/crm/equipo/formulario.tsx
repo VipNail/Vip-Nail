@@ -29,7 +29,10 @@ export function FormularioPersona({ persona, esYo = false }: { persona?: Persona
       {persona && <input type="hidden" name="id" value={persona.id} />}
 
       <Campo etiqueta="Nombre" name="nombre" defaultValue={persona?.nombre} autoComplete="off" required />
-      <Campo etiqueta="Email" name="email" type="email" defaultValue={persona?.email} autoComplete="off" required />
+      <div className="flex flex-col gap-1">
+        <Campo etiqueta="Email" name="email" type="email" defaultValue={persona?.email} autoComplete="off" required />
+        <p className="text-sm text-texto-suave">Si va a entrar con Google, pon aquí su email de Google.</p>
+      </div>
 
       <div className="flex flex-col gap-1">
         <Selector
