@@ -2,6 +2,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import { estadoMigraciones } from "@/lib/migrar";
+import { version } from "../../../../package.json";
 
 export async function GET() {
   const inicio = Date.now();
@@ -16,7 +17,7 @@ export async function GET() {
     baseDeDatos,
     migraciones: estadoMigraciones(),
     entorno: process.env.ENTORNO ?? "local",
-    version: process.env.npm_package_version ?? "?",
+    version, // Hostinger no arranca con «npm start»: se lee de package.json al compilar
     ms: Date.now() - inicio,
   };
   return Response.json(cuerpo, {
