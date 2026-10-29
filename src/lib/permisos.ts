@@ -5,6 +5,7 @@ export const PERMISOS = [
   "crm.ver",
   "agenda.ver",
   "agenda.gestionar",
+  "reservas.configurar",
   "clientas.ver",
   "clientas.gestionar",
   "pedidos.gestionar",
