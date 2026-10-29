@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, or } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { cliente } from "@/db/schema";
 import type { Ejecutor } from "@/features/reservas/consultas";
 
@@ -35,7 +35,7 @@ export async function buscarOCrearCliente(
     const [existente] = await ex
       .select({ id: cliente.id, nombre: cliente.nombre, telefono: cliente.telefono, email: cliente.email })
       .from(cliente)
-      .where(or(...condiciones))
+      .where(and(isNull(cliente.borradaAt), or(...condiciones)))
       .limit(1);
     if (existente) {
       // Completa lo que faltase en la ficha, sin pisar lo que ya tenía.
