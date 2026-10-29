@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
     webpackBuildWorker: false,
     cpus: 1,
   },
+  // URLs bonitas de producto sin carpetas con corchetes (la subida por la web de GitHub no
+  // las admite): /tienda/esmalte-nude → /tienda/ficha?slug=esmalte-nude. Las rutas que sí
+  // existen (/tienda/ficha) tienen prioridad sobre esta regla.
+  async rewrites() {
+    return [{ source: "/tienda/:slug", destination: "/tienda/ficha?slug=:slug" }];
+  },
   async headers() {
     return [
       {
