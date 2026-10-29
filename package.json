@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "db:generar": "drizzle-kit generate",
     "db:migrar": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test": "tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "better-auth": "^1.7.13",
