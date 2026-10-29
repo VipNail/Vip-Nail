@@ -22,6 +22,13 @@
       "when": 1793265741106,
       "tag": "0002_clientas_borrado",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1793271952246,
+      "tag": "0003_tienda",
+      "breakpoints": true
     }
   ]
 }
