@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AreaTexto, Aviso, Boton, Campo, Selector } from "@/components/ui/campo";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
 import { crearCita } from "@/features/agenda/acciones";
+import { obtenerClienta } from "@/features/clientas/consultas";
 import { huecosDelDia, listarPersonasActivas, listarServicios } from "@/features/reservas/consultas";
 import { fechaMadrid, horaMadrid, leerFecha } from "@/features/reservas/tiempo";
 import { exigirEquipo } from "@/lib/sesion";
@@ -16,6 +17,9 @@ export default async function NuevaCita({ searchParams }: PageProps<"/crm/agenda
   const fecha = typeof q.fecha === "string" && leerFecha(q.fecha) && q.fecha >= hoy ? q.fecha : hoy;
   const servicioId = typeof q.servicio === "string" ? q.servicio : "";
   const persona = typeof q.persona === "string" ? q.persona : "";
+  // Cita pedida desde la ficha de una clienta: no hace falta volver a escribir sus datos.
+  const clienta = typeof q.clienta === "string" ? await obtenerClienta(q.clienta) : null;
+  const paraClienta = clienta && !clienta.borradaAt ? clienta : null;
 
   const [servicios, personas] = await Promise.all([listarServicios(), listarPersonasActivas()]);
   const resultado = servicioId ? await huecosDelDia({ servicioId, fecha, staffId: persona || null, modo: "equipo" }) : null;
@@ -25,11 +29,16 @@ export default async function NuevaCita({ searchParams }: PageProps<"/crm/agenda
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 py-6">
       <div>
-        <Link href={`/crm/agenda?fecha=${fecha}`} className="text-sm text-texto-suave underline-offset-4 hover:underline">
-          ← Agenda
+        <Link
+          href={paraClienta ? `/crm/clientas/ficha?id=${paraClienta.id}` : `/crm/agenda?fecha=${fecha}`}
+          className="text-sm text-texto-suave underline-offset-4 hover:underline"
+        >
+          {paraClienta ? "← Ficha" : "← Agenda"}
         </Link>
         <h1 className="mt-1 text-2xl font-semibold text-marca">Nueva cita</h1>
-        <p className="text-sm text-texto-suave">Para citas por teléfono o en persona.</p>
+        <p className="text-sm text-texto-suave">
+          {paraClienta ? `Para ${paraClienta.nombre}${paraClienta.telefono ? ` · ${paraClienta.telefono}` : ""}` : "Para citas por teléfono o en persona."}
+        </p>
       </div>
 
       {servicios.length === 0 ? (
@@ -57,6 +66,7 @@ export default async function NuevaCita({ searchParams }: PageProps<"/crm/agenda
               ))}
           </Selector>
           <Campo etiqueta="Día" name="fecha" type="date" defaultValue={fecha} min={hoy} required />
+          {paraClienta && <input type="hidden" name="clienta" value={paraClienta.id} />}
           <Boton type="submit">Ver horas libres</Boton>
         </form>
       )}
@@ -97,14 +107,25 @@ export default async function NuevaCita({ searchParams }: PageProps<"/crm/agenda
                 )}
               </fieldset>
 
-              <Campo etiqueta="Nombre de la clienta" name="nombre" autoComplete="off" required maxLength={160} />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Campo etiqueta="Teléfono" name="telefono" type="tel" inputMode="tel" autoComplete="off" maxLength={32} />
-                <Campo etiqueta="Email (opcional)" name="email" type="email" autoComplete="off" maxLength={191} />
-              </div>
-              <p className="-mt-3 text-sm text-texto-suave">
-                Si ya existe una clienta con ese teléfono o email, la cita va a su ficha.
-              </p>
+              {paraClienta ? (
+                <>
+                  <input type="hidden" name="clienteId" value={paraClienta.id} />
+                  <p className="rounded-lg border border-borde bg-superficie px-3 py-2 text-sm">
+                    Clienta: <strong>{paraClienta.nombre}</strong>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Campo etiqueta="Nombre de la clienta" name="nombre" autoComplete="off" required maxLength={160} />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Campo etiqueta="Teléfono" name="telefono" type="tel" inputMode="tel" autoComplete="off" maxLength={32} />
+                    <Campo etiqueta="Email (opcional)" name="email" type="email" autoComplete="off" maxLength={191} />
+                  </div>
+                  <p className="-mt-3 text-sm text-texto-suave">
+                    Si ya existe una clienta con ese teléfono o email, la cita va a su ficha.
+                  </p>
+                </>
+              )}
 
               <fieldset className="flex flex-col gap-2">
                 <legend className="mb-1 text-sm font-medium">Cómo ha llegado</legend>
