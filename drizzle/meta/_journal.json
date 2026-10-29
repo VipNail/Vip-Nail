@@ -15,6 +15,13 @@
       "when": 1793262177383,
       "tag": "0001_reservas",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1793265741106,
+      "tag": "0002_clientas_borrado",
+      "breakpoints": true
     }
   ]
 }
