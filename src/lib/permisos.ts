@@ -8,6 +8,7 @@ export const PERMISOS = [
   "reservas.configurar",
   "clientas.ver",
   "clientas.gestionar",
+  "clientas.rgpd",
   "pedidos.gestionar",
   "productos.gestionar",
   "cursos.gestionar",
