@@ -6,6 +6,7 @@ import { tienePermiso, type Permiso } from "@/lib/permisos";
 export type IconoMenu =
   | "inicio"
   | "agenda"
+  | "reservas"
   | "clientas"
   | "pedidos"
   | "productos"
@@ -26,6 +27,7 @@ export type SeccionCrm = {
 export const SECCIONES_CRM: readonly SeccionCrm[] = [
   { href: "/crm", nombre: "Inicio", icono: "inicio", permiso: "crm.ver", disponible: true },
   { href: "/crm/agenda", nombre: "Agenda", icono: "agenda", permiso: "agenda.ver", disponible: false },
+  { href: "/crm/reservas", nombre: "Reservas", icono: "reservas", permiso: "agenda.gestionar", disponible: true },
   { href: "/crm/clientas", nombre: "Clientas", icono: "clientas", permiso: "clientas.ver", disponible: false },
   { href: "/crm/pedidos", nombre: "Pedidos", icono: "pedidos", permiso: "pedidos.gestionar", disponible: false },
   { href: "/crm/productos", nombre: "Productos", icono: "productos", permiso: "productos.gestionar", disponible: false },
