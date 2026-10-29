@@ -62,7 +62,11 @@ export default async function Cita({ searchParams }: PageProps<"/crm/agenda/cita
         <Link href={`/crm/agenda?fecha=${fechaCita}`} className="text-sm text-texto-suave underline-offset-4 hover:underline">
           ← Agenda
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold text-marca">{c.clienta}</h1>
+        <h1 className="mt-1 text-2xl font-semibold text-marca">
+          <Link href={`/crm/clientas/ficha?id=${c.clienteId}`} className="underline-offset-4 hover:underline">
+            {c.clienta}
+          </Link>
+        </h1>
         <p className="first-letter:uppercase">
           {fechaLarga.format(c.inicio)} · {horaMadrid(c.inicio)}–{horaMadrid(c.fin)}
         </p>
