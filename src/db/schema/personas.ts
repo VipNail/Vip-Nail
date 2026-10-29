@@ -49,6 +49,9 @@ export const cliente = mysqlTable(
     origen: mysqlEnum("origen", ["web", "estudio", "migracion"]).notNull().default("web"),
     consentimientoMarketing: boolean("consentimiento_marketing").notNull().default(false),
     consentimientoMarketingAt: datetime("consentimiento_marketing_at", { fsp: 3 }),
+    // Derecho de supresión (RGPD): la ficha se anonimiza en vez de borrarse para no romper
+    // el historial de citas y ventas. Con fecha = ficha borrada.
+    borradaAt: datetime("borrada_at", { fsp: 3, mode: "date" }),
     ...marcasDeTiempo,
   },
   (t) => [
