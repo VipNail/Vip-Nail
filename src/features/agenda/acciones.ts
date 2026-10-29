@@ -3,11 +3,11 @@
 // transacción con la agenda de la persona bloqueada: dos personas del equipo no pueden
 // apuntar a la vez la misma hora.
 import { randomBytes } from "node:crypto";
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/db";
-import { actividad, cita, staff } from "@/db/schema";
+import { actividad, cita, cliente, staff } from "@/db/schema";
 import { buscarOCrearCliente } from "@/features/clientas/buscar";
 import { huecosDelDia, obtenerServicio, type Ejecutor } from "@/features/reservas/consultas";
 import { fechaMadrid, horaMadrid, leerFecha } from "@/features/reservas/tiempo";
@@ -44,9 +44,11 @@ const EsquemaCita = z.object({
   persona: ULID.or(z.literal("")),
   fecha: z.string().refine((f) => leerFecha(f) !== null, "Fecha no válida."),
   inicio: z.string().min(1, "Elige una hora."),
-  nombre: z.string().trim().min(2, "Pon el nombre de la clienta.").max(160),
-  telefono: z.string().trim().max(32),
-  email: z.string().trim().max(191).refine((v) => v === "" || z.email().safeParse(v).success, "Email no válido."),
+  // Con clienteId (cita desde la ficha) no hacen falta nombre ni contacto.
+  clienteId: ULID.or(z.literal("")).optional(),
+  nombre: z.string().trim().max(160).default(""),
+  telefono: z.string().trim().max(32).default(""),
+  email: z.string().trim().max(191).default("").refine((v) => v === "" || z.email().safeParse(v).success, "Email no válido."),
   origen: z.enum(["telefono", "presencial"], "Elige cómo ha llegado la cita."),
   notas: z.string().trim().max(1000),
 });
@@ -56,7 +58,10 @@ export async function crearCita(_: EstadoFormulario, formData: FormData): Promis
   const r = EsquemaCita.safeParse(Object.fromEntries(formData));
   if (!r.success) return { error: r.error.issues[0]?.message ?? "Revisa los datos." };
   const d = r.data;
-  if (!d.telefono && !d.email) return { error: "Pon al menos el teléfono o el email de la clienta." };
+  if (!d.clienteId) {
+    if (d.nombre.length < 2) return { error: "Pon el nombre de la clienta." };
+    if (!d.telefono && !d.email) return { error: "Pon al menos el teléfono o el email de la clienta." };
+  }
   const inicio = new Date(d.inicio);
   if (Number.isNaN(inicio.getTime())) return { error: "Elige una hora." };
 
@@ -72,7 +77,16 @@ export async function crearCita(_: EstadoFormulario, formData: FormData): Promis
       if (!hueco) throw new HuecoOcupado();
       const staffId = d.persona || hueco.staffIds[0];
 
-      const c = await buscarOCrearCliente(tx, { nombre: d.nombre, telefono: d.telefono, email: d.email });
+      let c: { id: string; nombre: string; nueva: boolean };
+      if (d.clienteId) {
+        const [f] = await tx
+          .select({ id: cliente.id, nombre: cliente.nombre })
+          .from(cliente)
+          .where(and(eq(cliente.id, d.clienteId), isNull(cliente.borradaAt)))
+          .limit(1);
+        if (!f) throw new HuecoOcupado();
+        c = { ...f, nueva: false };
+      } else c = await buscarOCrearCliente(tx, { nombre: d.nombre, telefono: d.telefono, email: d.email });
       await tx.insert(cita).values({
         clienteId: c.id,
         staffId,
@@ -97,7 +111,7 @@ export async function crearCita(_: EstadoFormulario, formData: FormData): Promis
     "cita.alta",
     `Cita ${d.origen === "telefono" ? "por teléfono" : "presencial"}: ${hecho.clienta}${hecho.nueva ? " (nueva)" : ""} · ${hecho.servicio} · ${hecho.persona} · ${fechaLegible(inicio)}`,
   );
-  redirect(`/crm/agenda?fecha=${d.fecha}&aviso=creada`);
+  redirect(d.clienteId ? `/crm/clientas/ficha?id=${d.clienteId}&aviso=cita` : `/crm/agenda?fecha=${d.fecha}&aviso=creada`);
 }
 
 // ── Cambiar de hora ──────────────────────────────────────────────────────────
