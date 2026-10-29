@@ -1,0 +1,1 @@
+ALTER TABLE `cliente` ADD `borrada_at` datetime(3);
