@@ -135,6 +135,7 @@ function Enlace({ seccion, alPulsar }: { seccion: SeccionCrm; alPulsar: () => vo
 const TRAZOS: Record<IconoMenu, string> = {
   inicio: "M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z",
   agenda: "M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM4 10h16M8 3v4M16 3v4",
+  reservas: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2",
   clientas: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20c0-3.3 3.6-6 8-6s8 2.7 8 6",
   pedidos: "M6 7h12l-1 13H7zM9 7a3 3 0 0 1 6 0",
   productos: "M4 8l8-4 8 4v8l-8 4-8-4zM4 8l8 4 8-4M12 12v8",
