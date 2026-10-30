@@ -16,7 +16,10 @@ const nextConfig: NextConfig = {
   // las admite): /tienda/esmalte-nude → /tienda/ficha?slug=esmalte-nude. Las rutas que sí
   // existen (/tienda/ficha) tienen prioridad sobre esta regla.
   async rewrites() {
-    return [{ source: "/tienda/:slug", destination: "/tienda/ficha?slug=:slug" }];
+    return [
+      { source: "/tienda/:slug", destination: "/tienda/ficha?slug=:slug" },
+      { source: "/academia/:slug", destination: "/academia/ficha?slug=:slug" },
+    ];
   },
   async headers() {
     return [
