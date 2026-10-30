@@ -78,7 +78,7 @@ export async function crearInscripcion(_: EstadoFormulario, formData: FormData):
       linea = { tipo: "curso", cursoId: c.id, referencia: "CURSO", nombre: c.titulo, precio: c.precio, tipoIva: c.tipoIva };
       const cl = await buscarOCrearCliente(tx, { nombre: d.nombre, telefono: d.telefono, email: d.email, origen: "web", consiente: formData.get("novedades") === "on" });
       const [ya] = await tx.select({ id: accesoCurso.id }).from(accesoCurso).where(and(eq(accesoCurso.clienteId, cl.id), eq(accesoCurso.cursoId, c.id))).limit(1);
-      if (ya) throw new Rechazo("Ya tienes este curso. Si no puedes entrar, escríbenos.");
+      if (ya) throw new Rechazo("Ya tienes este curso. Entra a verlo en «Mis cursos» (vipnail.es/cuenta); si no tienes contraseña, escríbenos.");
       return await crear(tx, cl.id, linea, null, "total");
 
       async function crear(t: typeof tx, clienteId: string, l: typeof linea, conv: string | null, modalidad: "senal" | "total") {
