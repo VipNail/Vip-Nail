@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { Aviso } from "@/components/ui/campo";
 import { proveedoresDisponibles } from "@/features/pagos/proveedores";
 import { costeEnvio, subtotal } from "@/features/tienda/calculo";
@@ -11,6 +12,7 @@ import { FormularioFinalizar } from "./formulario";
 export const metadata: Metadata = { title: "Finalizar pedido", robots: { index: false, follow: false } };
 
 export default async function Finalizar() {
+  await connection();
   const [{ lineas, cambio }, metodos] = await Promise.all([leerCesta().then(calcularCesta), metodosEnvio()]);
   if (!lineas.length || cambio) redirect("/tienda/cesta");
   const sub = subtotal(lineas.map((l) => ({ precio: l.precio.precio, cantidad: l.cantidad, tipoIva: l.tipoIva })));
