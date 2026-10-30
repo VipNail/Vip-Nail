@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { anadirACesta } from "@/features/tienda/acciones-web";
 import { productoPublico } from "@/features/tienda/consultas";
 import { FotoProvisional, Precio } from "@/features/tienda/ui/tarjeta";
 
@@ -76,10 +77,28 @@ export default async function Ficha({ searchParams }: PageProps<"/tienda/ficha">
             {hay ? (p.stock <= 3 ? `¡Quedan ${p.stock}!` : "En stock") : "Agotado"}
           </p>
 
-          {/* DEBT: el carrito llega en la siguiente misión (carrito, pedido y pago). */}
-          <button type="button" disabled className="h-12 rounded-full bg-marca px-6 font-medium text-sobre-marca opacity-50">
-            {hay ? "Añadir a la cesta · muy pronto" : "Agotado"}
-          </button>
+          {hay ? (
+            <form action={anadirACesta} className="flex gap-2">
+              <input type="hidden" name="productoId" value={p.id} />
+              <label className="sr-only" htmlFor="cantidad">
+                Cantidad
+              </label>
+              <select id="cantidad" name="cantidad" defaultValue="1" className="h-12 rounded-full border border-borde bg-superficie px-3 text-base">
+                {Array.from({ length: Math.min(p.stock, 10) }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              <button type="submit" className="h-12 flex-1 rounded-full bg-marca px-6 font-medium text-sobre-marca hover:bg-marca-hover">
+                Añadir a la cesta
+              </button>
+            </form>
+          ) : (
+            <button type="button" disabled className="h-12 rounded-full bg-marca px-6 font-medium text-sobre-marca opacity-50">
+              Agotado
+            </button>
+          )}
 
           {p.descripcion && <div className="whitespace-pre-line text-texto">{p.descripcion}</div>}
         </div>
