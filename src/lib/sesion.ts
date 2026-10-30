@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { staff, type Rol } from "@/db/schema";
+import { cliente, staff, type Rol } from "@/db/schema";
 import { auth } from "./auth";
 import { tienePermiso, type Permiso } from "./permisos";
 
@@ -40,4 +40,26 @@ export async function exigirEquipo(permiso: Permiso = "crm.ver"): Promise<Miembr
     email: sesion.user.email,
     rol: fila.rol,
   };
+}
+
+export type Alumna = { userId: string; clienteId: string; nombre: string; email: string };
+
+/** La clienta con sesión (zona de alumna), o null. */
+export async function alumnaActual(): Promise<Alumna | null> {
+  const sesion = await leerSesion();
+  if (!sesion) return null;
+  const [c] = await db
+    .select({ id: cliente.id, nombre: cliente.nombre, borrada: cliente.borradaAt })
+    .from(cliente)
+    .where(eq(cliente.userId, sesion.user.id))
+    .limit(1);
+  if (!c || c.borrada) return null;
+  return { userId: sesion.user.id, clienteId: c.id, nombre: c.nombre, email: sesion.user.email };
+}
+
+/** Devuelve la alumna con sesión o manda a /cuenta/entrar. */
+export async function exigirAlumna(): Promise<Alumna> {
+  const a = await alumnaActual();
+  if (!a) redirect("/cuenta/entrar");
+  return a;
 }
