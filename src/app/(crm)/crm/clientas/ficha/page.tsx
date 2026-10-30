@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Aviso } from "@/components/ui/campo";
 import { BotonConfirmar } from "@/app/(crm)/crm/equipo/editar/confirmar";
 import { academiaDeClienta, TEXTO_PLAZA } from "@/features/academia/consultas";
+import { EnlaceAlumna } from "./enlace-alumna";
 import { ESTADO_CITA } from "@/features/agenda/estados";
 import { borrarClienta, fusionarClientas } from "@/features/clientas/acciones";
 import { buscarParaFusion, fichaClienta } from "@/features/clientas/consultas";
@@ -246,13 +247,25 @@ export default async function Ficha({ searchParams }: PageProps<"/crm/clientas/f
         </section>
       )}
 
+      {(gestiona || verCursos) && (
+        <section className="flex flex-col gap-3 rounded-xl border border-borde p-4">
+          <h2 className="font-medium">Zona de alumna</h2>
+          <p className="text-sm text-texto-suave">
+            {c.userId
+              ? `Tiene cuenta: entra en vipnail.es/cuenta con ${c.email ?? "su email"}. Si ha olvidado la contraseña, mándale un enlace para poner otra.`
+              : "Aún no tiene contraseña. Mándale un enlace para que la cree y pueda ver sus cursos online."}
+          </p>
+          <EnlaceAlumna clienteId={c.id} telefono={c.telefono} nombre={c.nombre} tieneCuenta={Boolean(c.userId)} />
+        </section>
+      )}
+
       {rgpd && (
         <section className="flex flex-col gap-3 rounded-xl border border-borde p-4">
           <h2 className="font-medium">Protección de datos</h2>
           <p className="text-sm text-texto-suave">
             Si la clienta pide una copia de sus datos, descárgala y envíasela. Si pide que la borres, su ficha se vacía: se
             quitan nombre, contacto y notas, y sus citas quedan sin datos personales. Sus pedidos se conservan porque la
-            ley obliga a guardar los datos de facturación.
+            ley obliga a guardar los datos de facturación. También se borran su cuenta de alumna y su acceso a los cursos online.
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <a
