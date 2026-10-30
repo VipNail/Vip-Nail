@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { convocatoriasDe, cursoPorSlug, temario } from "@/features/academia/consultas";
+import { tieneAcceso } from "@/features/cuenta/consultas";
 import { euros } from "@/features/tienda/precios";
+import { alumnaActual } from "@/lib/sesion";
 
 async function leer(searchParams: PageProps<"/academia/ficha">["searchParams"]) {
   const { slug } = await searchParams;
@@ -29,6 +31,8 @@ export default async function FichaCurso({ searchParams }: PageProps<"/academia/
     c.tipo === "online" ? temario(c.id) : Promise.resolve([]),
     c.tipo === "presencial" ? convocatoriasDe(c.id, { soloFuturas: true }) : Promise.resolve([]),
   ]);
+  const alumna = c.tipo === "online" ? await alumnaActual() : null;
+  const yaLoTiene = alumna ? await tieneAcceso(alumna.clienteId, c.id) : false;
   const abiertas = fechas.filter((f) => f.estado !== "cancelada");
   const modulos = [...new Set(lecciones.map((l) => l.modulo ?? ""))];
 
@@ -50,7 +54,12 @@ export default async function FichaCurso({ searchParams }: PageProps<"/academia/
         </p>
       </div>
 
-      {c.tipo === "online" && (
+      {c.tipo === "online" && yaLoTiene && (
+        <Link href={`/cuenta/curso?id=${c.id}`} className="flex h-12 items-center justify-center rounded-full bg-marca px-6 font-medium text-sobre-marca hover:bg-marca-hover sm:self-start">
+          Ya tienes este curso: ir al curso
+        </Link>
+      )}
+      {c.tipo === "online" && !yaLoTiene && (
         <Link href={`/academia/inscripcion?curso=${c.id}`} className="flex h-12 items-center justify-center rounded-full bg-marca px-6 font-medium text-sobre-marca hover:bg-marca-hover sm:self-start">
           Comprar el curso
         </Link>
