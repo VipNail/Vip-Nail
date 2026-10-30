@@ -43,6 +43,13 @@
       "when": 1793382262740,
       "tag": "0005_academia",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1793385807768,
+      "tag": "0006_cuenta_alumna",
+      "breakpoints": true
     }
   ]
 }
