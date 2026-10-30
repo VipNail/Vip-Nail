@@ -6,6 +6,8 @@ import { BotonConfirmar } from "@/app/(crm)/crm/equipo/editar/confirmar";
 import { ESTADO_CITA } from "@/features/agenda/estados";
 import { borrarClienta, fusionarClientas } from "@/features/clientas/acciones";
 import { buscarParaFusion, fichaClienta } from "@/features/clientas/consultas";
+import { pedidosDeClienta, textoEstado } from "@/features/tienda/pedidos";
+import { euros } from "@/features/tienda/precios";
 import { horaMadrid } from "@/features/reservas/tiempo";
 import { tienePermiso } from "@/lib/permisos";
 import { exigirEquipo } from "@/lib/sesion";
@@ -22,6 +24,7 @@ const AVISOS: Record<string, { texto: string; ok: boolean }> = {
   "no-fusion": { texto: "No se pudo fusionar: alguna de las fichas ya no existe.", ok: false },
   "dos-cuentas": { texto: "Las dos fichas tienen cuenta en la web: no se pueden unir automáticamente.", ok: false },
   pendientes: { texto: "Tiene citas pendientes. Cancélalas antes de borrar la ficha.", ok: false },
+  "pedidos-abiertos": { texto: "Tiene pedidos pagados sin entregar. Termínalos antes de borrar la ficha.", ok: false },
 };
 
 export default async function Ficha({ searchParams }: PageProps<"/crm/clientas/ficha">) {
@@ -29,10 +32,12 @@ export default async function Ficha({ searchParams }: PageProps<"/crm/clientas/f
   const gestiona = tienePermiso(yo.rol, "clientas.gestionar");
   const rgpd = tienePermiso(yo.rol, "clientas.rgpd");
   const citasGestion = tienePermiso(yo.rol, "agenda.gestionar");
+  const verPedidos = tienePermiso(yo.rol, "pedidos.gestionar");
   const sp = await searchParams;
   const f = typeof sp.id === "string" ? await fichaClienta(sp.id) : null;
   if (!f || f.clienta.borradaAt) notFound();
   const { clienta: c, citas, proximas, resumen } = f;
+  const pedidos = verPedidos ? await pedidosDeClienta(c.id) : [];
   const aviso = typeof sp.aviso === "string" ? AVISOS[sp.aviso] : undefined;
 
   const fusionar = gestiona && sp.fusionar === "1";
@@ -126,8 +131,35 @@ export default async function Ficha({ searchParams }: PageProps<"/crm/clientas/f
             ))}
           </ul>
         )}
-        <p className="text-xs text-texto-suave">Los pedidos de la tienda y los cursos aparecerán aquí cuando estén en marcha.</p>
       </section>
+
+      {verPedidos && (
+        <section className="flex flex-col gap-3">
+          <h2 className="font-medium">Pedidos de la tienda</h2>
+          {pedidos.length === 0 ? (
+            <p className="text-sm text-texto-suave">Todavía no ha comprado en la tienda.</p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {pedidos.map((p) => {
+                const e = textoEstado(p.estado, p.envioTipo);
+                return (
+                  <li key={p.id}>
+                    <Link href={`/crm/pedidos/ver?id=${p.id}`} className="flex items-center gap-3 rounded-lg border border-borde bg-superficie px-3 py-2 hover:border-marca">
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="font-medium">{p.numero}</span>
+                        <span className="text-sm text-texto-suave">{dia.format(p.createdAt)}</span>
+                      </span>
+                      <span className="font-medium">{euros(p.total)}</span>
+                      <span className={`shrink-0 rounded-full border px-2 text-xs ${e.clase}`}>{e.texto}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <p className="text-xs text-texto-suave">Los cursos aparecerán aquí cuando esté la academia.</p>
+        </section>
+      )}
 
       {gestiona && (
         <section className="flex flex-col gap-3 rounded-xl border border-borde p-4">
@@ -188,7 +220,8 @@ export default async function Ficha({ searchParams }: PageProps<"/crm/clientas/f
           <h2 className="font-medium">Protección de datos</h2>
           <p className="text-sm text-texto-suave">
             Si la clienta pide una copia de sus datos, descárgala y envíasela. Si pide que la borres, su ficha se vacía: se
-            quitan nombre, contacto y notas, y sus citas quedan sin datos personales.
+            quitan nombre, contacto y notas, y sus citas quedan sin datos personales. Sus pedidos se conservan porque la
+            ley obliga a guardar los datos de facturación.
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <a
