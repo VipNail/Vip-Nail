@@ -4,7 +4,7 @@ import { and, eq, gt, inArray, isNull, ne, or } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/db";
-import { accesoCurso, actividad, cita, cliente, pedido, plaza } from "@/db/schema";
+import { accesoCurso, actividad, cita, cliente, enlaceCuenta, pedido, plaza, progreso, staff, user } from "@/db/schema";
 import { exigirEquipo } from "@/lib/sesion";
 import { normalizarTelefono } from "./buscar";
 
@@ -72,11 +72,18 @@ export async function guardarClienta(_: EstadoFormulario, formData: FormData): P
   let destino = id;
   if (id) {
     const [antes] = await db
-      .select({ consiente: cliente.consentimientoMarketing, borrada: cliente.borradaAt })
+      .select({ consiente: cliente.consentimientoMarketing, borrada: cliente.borradaAt, userId: cliente.userId })
       .from(cliente)
       .where(eq(cliente.id, id))
       .limit(1);
     if (!antes || antes.borrada) return { error: "Esta ficha ya no existe." };
+    if (antes.userId) {
+      // Tiene cuenta de alumna: el email es con el que entra, así que cambia también ahí.
+      if (!email) return { error: "Tiene cuenta de alumna: el email no se puede dejar vacío (es con lo que entra)." };
+      const [ocupado] = await db.select({ id: user.id }).from(user).where(and(eq(user.email, email), ne(user.id, antes.userId))).limit(1);
+      if (ocupado) return { error: "Ese email ya lo usa otra cuenta." };
+      await db.update(user).set({ email, name: d.nombre }).where(eq(user.id, antes.userId));
+    }
     await db
       .update(cliente)
       .set({
@@ -127,6 +134,10 @@ export async function fusionarClientas(formData: FormData): Promise<void> {
     if (repetidos.length) await tx.delete(accesoCurso).where(and(eq(accesoCurso.clienteId, b.id), inArray(accesoCurso.cursoId, repetidos)));
     await tx.update(accesoCurso).set({ clienteId: a.id }).where(eq(accesoCurso.clienteId, b.id));
     await tx.update(plaza).set({ clienteId: a.id }).where(eq(plaza.clienteId, b.id));
+    // Lecciones vistas: se suman (las que ya tenía vistas la principal se quedan como están).
+    const vistas = (await tx.select({ id: progreso.leccionId }).from(progreso).where(eq(progreso.clienteId, a.id))).map((x) => x.id);
+    if (vistas.length) await tx.delete(progreso).where(and(eq(progreso.clienteId, b.id), inArray(progreso.leccionId, vistas)));
+    await tx.update(progreso).set({ clienteId: a.id }).where(eq(progreso.clienteId, b.id));
 
     const etiquetas = [...new Set([...(a.etiquetas ?? []), ...(b.etiquetas ?? [])])];
     const notas = [a.notas, b.notas].filter(Boolean).join("\n— Fusionada —\n") || null;
@@ -176,12 +187,16 @@ export async function borrarClienta(formData: FormData): Promise<void> {
   const [abierto] = await db
     .select({ id: pedido.id })
     .from(pedido)
-    .where(and(eq(pedido.clienteId, id), inArray(pedido.estado, ["pagado", "preparando"])))
+    .where(and(eq(pedido.clienteId, id), inArray(pedido.estado, ["pagado", "preparando"]), ne(pedido.envioTipo, "sin_envio")))
     .limit(1);
   if (abierto) redirect(`/crm/clientas/ficha?id=${id}&aviso=pedidos-abiertos`);
 
+  const [ficha] = await db.select({ userId: cliente.userId }).from(cliente).where(eq(cliente.id, id)).limit(1);
   await db.transaction(async (tx) => {
     await tx.update(cita).set({ notas: null }).where(eq(cita.clienteId, id));
+    await tx.delete(enlaceCuenta).where(eq(enlaceCuenta.clienteId, id));
+    await tx.delete(accesoCurso).where(eq(accesoCurso.clienteId, id));
+    await tx.delete(progreso).where(eq(progreso.clienteId, id));
     await tx
       .update(cliente)
       .set({
@@ -200,7 +215,11 @@ export async function borrarClienta(formData: FormData): Promise<void> {
   });
   // Los pedidos se conservan con sus datos de facturación: obligación legal de conservar la
   // documentación contable (art. 17.3.b RGPD y art. 30 del Código de Comercio).
-  // DEBT: cuando haya cuentas web de clientas, borrar también su usuario y sesiones.
+  // Su cuenta de alumna (usuario, sesiones y contraseña) se borra, salvo que sea también del equipo.
+  if (ficha?.userId) {
+    const [esEquipo] = await db.select({ id: staff.id }).from(staff).where(eq(staff.userId, ficha.userId)).limit(1);
+    if (!esEquipo) await db.delete(user).where(eq(user.id, ficha.userId));
+  }
   // El registro de actividad no guarda el nombre, solo que se ha ejercido el derecho.
   await anotar(yo.userId, "cliente.borrado", "Ficha de clienta borrada a petición (RGPD)");
   redirect("/crm/clientas?aviso=borrada");
