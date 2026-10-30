@@ -3,7 +3,8 @@ import "server-only";
 // si llega dos veces, la segunda no hace nada. El stock se descuenta aquí, al pagar.
 import { and, eq, inArray, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { actividad, pedido, pedidoLinea, producto } from "@/db/schema";
+import { accesoCurso, actividad, convocatoria, pedido, pedidoLinea, plaza, producto } from "@/db/schema";
+import { ocupa } from "@/features/academia/logica";
 import { euros } from "@/features/tienda/precios";
 
 export type Resultado = "pagado" | "ya-pagado" | "no-existe" | "importe" | "estado";
@@ -32,9 +33,33 @@ export async function confirmarPago(d: { pedidoId: string; importe: number; meto
           .from(producto)
           .where(and(inArray(producto.id, ids), lt(producto.stock, 0)))
       : [];
-    const incidencia = sinStock.length
-      ? `Pagado sin stock suficiente: ${sinStock.map((x) => x.referencia).join(", ")}`.slice(0, 255)
-      : null;
+    const avisos: string[] = [];
+    if (sinStock.length) avisos.push(`Pagado sin stock suficiente: ${sinStock.map((x) => x.referencia).join(", ")}`);
+
+    // Cursos online: acceso inmediato.
+    for (const l of lineas.filter((x) => x.tipo === "curso" && x.cursoId)) {
+      const [ya] = await tx
+        .select({ id: accesoCurso.id })
+        .from(accesoCurso)
+        .where(and(eq(accesoCurso.clienteId, p.clienteId), eq(accesoCurso.cursoId, l.cursoId!)))
+        .limit(1);
+      if (!ya) await tx.insert(accesoCurso).values({ clienteId: p.clienteId, cursoId: l.cursoId!, origen: "compra", pedidoId: p.id, desde: new Date() });
+    }
+    // Cursos presenciales: la plaza queda confirmada (señal o completa).
+    const plazas = await tx.select().from(plaza).where(eq(plaza.pedidoId, p.id));
+    for (const pl of plazas) {
+      if (pl.estado !== "reservada_pendiente") continue;
+      // Si la reserva caducó y entretanto se llenó la convocatoria, se avisa para resolverlo a mano.
+      const [conv] = await tx.select({ plazas: convocatoria.plazas }).from(convocatoria).where(eq(convocatoria.id, pl.convocatoriaId)).for("update");
+      const otras = await tx.select({ id: plaza.id, estado: plaza.estado, caducaAt: plaza.caducaAt }).from(plaza).where(eq(plaza.convocatoriaId, pl.convocatoriaId));
+      const ocupadas = otras.filter((o) => o.id !== pl.id && ocupa(o, new Date())).length;
+      if (conv && ocupadas >= conv.plazas) avisos.push("Plaza pagada cuando la convocatoria ya estaba llena");
+      await tx
+        .update(plaza)
+        .set({ estado: pl.modalidad === "total" ? "pagada" : "senal_pagada", importePagado: p.total, caducaAt: null })
+        .where(eq(plaza.id, pl.id));
+    }
+    const incidencia = avisos.length ? avisos.join(" · ").slice(0, 255) : null;
 
     await tx
       .update(pedido)
