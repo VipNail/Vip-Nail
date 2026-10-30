@@ -84,7 +84,7 @@ export default async function Pedido({ searchParams }: PageProps<"/tienda/pedido
       </dl>
 
       <section className="rounded-xl border border-borde p-4 text-sm">
-        <h2 className="mb-1 font-medium">Entrega</h2>
+        <h2 className="mb-1 font-medium">{p.envioTipo === "sin_envio" ? "Curso" : "Entrega"}</h2>
         {p.direccion ? (
           <p>
             {p.direccion.nombre}
@@ -92,6 +92,11 @@ export default async function Pedido({ searchParams }: PageProps<"/tienda/pedido
             {p.direccion.direccion}
             <br />
             {p.direccion.cp} {p.direccion.ciudad} ({p.direccion.provincia})
+          </p>
+        ) : p.envioTipo === "sin_envio" ? (
+          <p>
+            Inscripción a curso.{" "}
+            {p.estado === "pagado" ? "¡Ya está confirmada! Te escribiremos con todos los detalles." : "Se confirma al completar el pago."}
           </p>
         ) : (
           <p>Recogida en el estudio. Te avisaremos cuando esté listo.</p>
