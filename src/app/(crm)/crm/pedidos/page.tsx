@@ -13,6 +13,7 @@ const FILTROS = [
   ["por-preparar", "Por preparar"],
   ["pendiente_pago", "Sin pagar"],
   ["enviado", "Enviados"],
+  ["cursos", "Cursos"],
   ["todos", "Todos"],
 ] as const;
 
@@ -72,7 +73,7 @@ export default async function Pedidos({ searchParams }: PageProps<"/crm/pedidos"
                       {p.numero} · {p.nombre}
                     </span>
                     <span className="text-sm text-texto-suave">
-                      {fecha.format(p.createdAt)} · {p.envioTipo === "recogida" ? "Recogida" : "Envío"}
+                      {fecha.format(p.createdAt)} · {p.envioTipo === "recogida" ? "Recogida" : p.envioTipo === "sin_envio" ? "Curso" : "Envío"}
                       {p.incidencia && <span className="text-error"> · ⚠ revisar</span>}
                     </span>
                   </span>
