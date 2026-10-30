@@ -29,7 +29,7 @@ export const SECCIONES_CRM: readonly SeccionCrm[] = [
   { href: "/crm/agenda", nombre: "Agenda", icono: "agenda", permiso: "agenda.ver", disponible: true },
   { href: "/crm/reservas", nombre: "Reservas", icono: "reservas", permiso: "agenda.gestionar", disponible: true },
   { href: "/crm/clientas", nombre: "Clientas", icono: "clientas", permiso: "clientas.ver", disponible: true },
-  { href: "/crm/pedidos", nombre: "Pedidos", icono: "pedidos", permiso: "pedidos.gestionar", disponible: false },
+  { href: "/crm/pedidos", nombre: "Pedidos", icono: "pedidos", permiso: "pedidos.gestionar", disponible: true },
   { href: "/crm/productos", nombre: "Productos", icono: "productos", permiso: "productos.gestionar", disponible: true },
   { href: "/crm/cursos", nombre: "Cursos", icono: "cursos", permiso: "cursos.gestionar", disponible: false },
   { href: "/crm/web", nombre: "Web", icono: "web", permiso: "web.editar", disponible: false },
