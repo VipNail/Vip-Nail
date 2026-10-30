@@ -1,6 +1,7 @@
 // Personas: equipo (staff) y ficha única de clienta (ARQUITECTURA §4).
 import {
   boolean,
+  char,
   datetime,
   index,
   json,
@@ -59,4 +60,25 @@ export const cliente = mysqlTable(
     index("cliente_telefono_idx").on(t.telefono),
     index("cliente_factusol_idx").on(t.factusolCodigo),
   ],
+);
+
+/**
+ * Enlaces de un solo uso para que una clienta cree (o recupere) su contraseña de la zona de
+ * alumna. Los genera el equipo desde la ficha (se mandan por WhatsApp mientras no haya correo).
+ * Solo se guarda el resumen (SHA-256) del enlace, nunca el enlace.
+ */
+export const enlaceCuenta = mysqlTable(
+  "enlace_cuenta",
+  {
+    id: id(),
+    clienteId: ref("cliente_id")
+      .notNull()
+      .references(() => cliente.id, { onDelete: "cascade" }),
+    tokenHash: char("token_hash", { length: 64 }).notNull().unique(),
+    caducaAt: datetime("caduca_at", { fsp: 3, mode: "date" }).notNull(),
+    usadoAt: datetime("usado_at", { fsp: 3, mode: "date" }),
+    creadoPor: ref("creado_por"),
+    ...marcasDeTiempo,
+  },
+  (t) => [index("enlace_cuenta_cliente_idx").on(t.clienteId)],
 );
