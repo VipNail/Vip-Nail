@@ -1,15 +1,16 @@
 "use server";
 // Acciones de la tienda pública (sin sesión): cesta, pedido y pago.
 import { randomBytes } from "node:crypto";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/db";
-import { contador, metodoEnvio, pedido, pedidoLinea, producto } from "@/db/schema";
+import { metodoEnvio, pedido, pedidoLinea, producto } from "@/db/schema";
 import { buscarOCrearCliente, normalizarTelefono } from "@/features/clientas/buscar";
 import { proveedor } from "@/features/pagos/proveedores";
-import { MAX_UNIDADES, numeroPedido, totales } from "./calculo";
+import { MAX_UNIDADES, totales } from "./calculo";
 import { calcularCesta, guardarCesta, leerCesta } from "./cesta";
+import { siguienteNumeroPedido } from "./numeracion";
 
 export type EstadoFormulario = { error?: string };
 const ULID = z.string().length(26);
@@ -104,7 +105,6 @@ export async function crearPedido(_: EstadoFormulario, formData: FormData): Prom
     { precio: metodo.precio, gratisDesde: metodo.gratisDesde },
   );
 
-  const anio = new Date().getFullYear();
   const token = randomBytes(24).toString("base64url");
   const creado = await db.transaction(async (tx) => {
     const c = await buscarOCrearCliente(tx, {
@@ -114,12 +114,7 @@ export async function crearPedido(_: EstadoFormulario, formData: FormData): Prom
       origen: "web",
       consiente: formData.get("novedades") === "on",
     });
-    // Numeración correlativa por año, sin huecos por concurrencia.
-    const clave = `pedido-${anio}`;
-    await tx.insert(contador).values({ clave, valor: 0 }).onDuplicateKeyUpdate({ set: { clave: sql`clave` } });
-    const [{ valor }] = await tx.select({ valor: contador.valor }).from(contador).where(eq(contador.clave, clave)).for("update");
-    await tx.update(contador).set({ valor: valor + 1 }).where(eq(contador.clave, clave));
-    const numero = numeroPedido(anio, valor + 1);
+    const numero = await siguienteNumeroPedido(tx);
 
     const [p] = await tx
       .insert(pedido)

@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, count, desc, eq, like, or, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, like, ne, or, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { pedido, pedidoLinea, type EstadoPedido } from "@/db/schema";
 import { patronLike } from "@/lib/texto";
@@ -27,7 +27,7 @@ export const TEXTO_ESTADO: Record<EstadoPedido, { texto: string; clase: string }
 };
 
 /** «Enviado» o «Listo para recoger» según la forma de entrega. */
-export function textoEstado(estado: EstadoPedido, tipo: "envio" | "recogida") {
+export function textoEstado(estado: EstadoPedido, tipo: "envio" | "recogida" | "sin_envio") {
   if (estado === "enviado" && tipo === "recogida") return { ...TEXTO_ESTADO.enviado, texto: "Listo para recoger" };
   return TEXTO_ESTADO[estado];
 }
@@ -43,7 +43,9 @@ export async function pedidosCrm(f: { estado?: string; q?: string; pagina?: numb
     : undefined;
   const filtroEstado: SQL | undefined =
     f.estado === "por-preparar"
-      ? or(eq(pedido.estado, "pagado"), eq(pedido.estado, "preparando"))
+      ? and(or(eq(pedido.estado, "pagado"), eq(pedido.estado, "preparando")), ne(pedido.envioTipo, "sin_envio"))
+      : f.estado === "cursos"
+        ? eq(pedido.envioTipo, "sin_envio")
       : f.estado && f.estado !== "todos"
         ? eq(pedido.estado, f.estado as EstadoPedido)
         : undefined;
@@ -71,7 +73,10 @@ export async function pedidosCrm(f: { estado?: string; q?: string; pagina?: numb
 }
 
 export async function contarPorPreparar() {
-  const [{ n }] = await db.select({ n: count() }).from(pedido).where(or(eq(pedido.estado, "pagado"), eq(pedido.estado, "preparando")));
+  const [{ n }] = await db
+    .select({ n: count() })
+    .from(pedido)
+    .where(and(or(eq(pedido.estado, "pagado"), eq(pedido.estado, "preparando")), ne(pedido.envioTipo, "sin_envio")));
   return n;
 }
 

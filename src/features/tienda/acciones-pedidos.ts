@@ -4,7 +4,7 @@ import { eq, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/db";
-import { actividad, metodoEnvio, pedido, pedidoLinea, producto, type EstadoPedido } from "@/db/schema";
+import { accesoCurso, actividad, metodoEnvio, pedido, pedidoLinea, plaza, producto, type EstadoPedido } from "@/db/schema";
 import { exigirEquipo } from "@/lib/sesion";
 import { leerEuros } from "./precios";
 
@@ -34,6 +34,11 @@ export async function cambiarEstadoPedido(formData: FormData): Promise<void> {
       const lineas = await tx.select().from(pedidoLinea).where(eq(pedidoLinea.pedidoId, p.id));
       for (const l of lineas)
         if (l.productoId) await tx.update(producto).set({ stock: sql`${producto.stock} + ${l.cantidad}` }).where(eq(producto.id, l.productoId));
+    }
+    if (nuevo === "reembolsado" || nuevo === "cancelado") {
+      // Cursos: se quita el acceso dado por este pedido y se liberan sus plazas.
+      await tx.delete(accesoCurso).where(eq(accesoCurso.pedidoId, p.id));
+      await tx.update(plaza).set({ estado: "cancelada", caducaAt: null }).where(eq(plaza.pedidoId, p.id));
     }
     await tx
       .update(pedido)
