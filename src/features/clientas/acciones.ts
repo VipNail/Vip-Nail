@@ -1,10 +1,10 @@
 "use server";
 // Fichas de clientas desde el CRM: alta/edición, fusión de duplicadas y borrado (RGPD).
-import { and, eq, gt, isNull, ne, or } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, ne, or } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/db";
-import { actividad, cita, cliente } from "@/db/schema";
+import { actividad, cita, cliente, pedido } from "@/db/schema";
 import { exigirEquipo } from "@/lib/sesion";
 import { normalizarTelefono } from "./buscar";
 
@@ -120,7 +120,8 @@ export async function fusionarClientas(formData: FormData): Promise<void> {
     if (a.userId && b.userId) return "dos-cuentas" as const;
 
     await tx.update(cita).set({ clienteId: a.id }).where(eq(cita.clienteId, b.id));
-    // DEBT: cuando existan pedidos, accesos a cursos y plazas, moverlos aquí también.
+    await tx.update(pedido).set({ clienteId: a.id }).where(eq(pedido.clienteId, b.id));
+    // DEBT: cuando existan accesos a cursos y plazas, moverlos aquí también.
 
     const etiquetas = [...new Set([...(a.etiquetas ?? []), ...(b.etiquetas ?? [])])];
     const notas = [a.notas, b.notas].filter(Boolean).join("\n— Fusionada —\n") || null;
@@ -167,6 +168,12 @@ export async function borrarClienta(formData: FormData): Promise<void> {
     .where(and(eq(cita.clienteId, id), eq(cita.estado, "confirmada"), gt(cita.inicio, new Date())))
     .limit(1);
   if (pendiente) redirect(`/crm/clientas/ficha?id=${id}&aviso=pendientes`);
+  const [abierto] = await db
+    .select({ id: pedido.id })
+    .from(pedido)
+    .where(and(eq(pedido.clienteId, id), inArray(pedido.estado, ["pagado", "preparando"])))
+    .limit(1);
+  if (abierto) redirect(`/crm/clientas/ficha?id=${id}&aviso=pedidos-abiertos`);
 
   await db.transaction(async (tx) => {
     await tx.update(cita).set({ notas: null }).where(eq(cita.clienteId, id));
@@ -186,6 +193,8 @@ export async function borrarClienta(formData: FormData): Promise<void> {
       })
       .where(eq(cliente.id, id));
   });
+  // Los pedidos se conservan con sus datos de facturación: obligación legal de conservar la
+  // documentación contable (art. 17.3.b RGPD y art. 30 del Código de Comercio).
   // DEBT: cuando haya cuentas web de clientas, borrar también su usuario y sesiones.
   // El registro de actividad no guarda el nombre, solo que se ha ejercido el derecho.
   await anotar(yo.userId, "cliente.borrado", "Ficha de clienta borrada a petición (RGPD)");

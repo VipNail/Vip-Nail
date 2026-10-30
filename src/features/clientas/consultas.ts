@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, count, desc, eq, isNull, like, ne, or, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
-import { cita, cliente, servicio, staff } from "@/db/schema";
+import { cita, cliente, pedido, servicio, staff } from "@/db/schema";
 import { normalizarTelefono } from "./buscar";
 
 export const POR_PAGINA = 30;
@@ -146,7 +146,15 @@ export async function datosParaExportar(id: string) {
       estado: x.estado,
       origen: x.origen,
     })),
-    // Pedidos y cursos se añadirán aquí cuando existan la tienda y la academia.
+    pedidos: (await db.select().from(pedido).where(eq(pedido.clienteId, id)).orderBy(desc(pedido.createdAt))).map((p) => ({
+      numero: p.numero,
+      fecha: p.createdAt.toISOString(),
+      estado: p.estado,
+      total: p.total / 100,
+      entrega: p.envioNombre,
+      direccion: p.direccion,
+    })),
+    // Los cursos se añadirán aquí cuando exista la academia.
   };
 }
 

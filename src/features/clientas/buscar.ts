@@ -23,7 +23,7 @@ export function normalizarTelefono(valor: string): string | null {
  */
 export async function buscarOCrearCliente(
   ex: Ejecutor,
-  datos: { nombre: string; telefono: string; email: string },
+  datos: { nombre: string; telefono: string; email: string; origen?: "web" | "estudio"; consiente?: boolean },
 ): Promise<{ id: string; nombre: string; nueva: boolean }> {
   const telefono = normalizarTelefono(datos.telefono);
   const email = datos.email.trim().toLowerCase() || null;
@@ -33,7 +33,7 @@ export async function buscarOCrearCliente(
 
   if (condiciones.length) {
     const [existente] = await ex
-      .select({ id: cliente.id, nombre: cliente.nombre, telefono: cliente.telefono, email: cliente.email })
+      .select({ id: cliente.id, nombre: cliente.nombre, telefono: cliente.telefono, email: cliente.email, consiente: cliente.consentimientoMarketing })
       .from(cliente)
       .where(and(isNull(cliente.borradaAt), or(...condiciones)))
       .limit(1);
@@ -42,6 +42,11 @@ export async function buscarOCrearCliente(
       const completar: Partial<typeof cliente.$inferInsert> = {};
       if (!existente.telefono && telefono) completar.telefono = telefono;
       if (!existente.email && email) completar.email = email;
+      // Si ahora marca que quiere novedades, se guarda (nunca se quita desde aquí).
+      if (datos.consiente && !existente.consiente) {
+        completar.consentimientoMarketing = true;
+        completar.consentimientoMarketingAt = new Date();
+      }
       if (Object.keys(completar).length) await ex.update(cliente).set(completar).where(eq(cliente.id, existente.id));
       return { id: existente.id, nombre: existente.nombre, nueva: false };
     }
@@ -49,7 +54,14 @@ export async function buscarOCrearCliente(
 
   const [nueva] = await ex
     .insert(cliente)
-    .values({ nombre: datos.nombre.trim(), telefono, email, origen: "estudio" })
+    .values({
+      nombre: datos.nombre.trim(),
+      telefono,
+      email,
+      origen: datos.origen ?? "estudio",
+      consentimientoMarketing: Boolean(datos.consiente),
+      consentimientoMarketingAt: datos.consiente ? new Date() : null,
+    })
     .$returningId();
   return { id: nueva.id, nombre: datos.nombre.trim(), nueva: true };
 }
