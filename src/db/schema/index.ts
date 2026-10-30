@@ -4,3 +4,4 @@ export * from "./sistema";
 export * from "./reservas";
 export * from "./tienda";
 export * from "./pedidos";
+export * from "./academia";

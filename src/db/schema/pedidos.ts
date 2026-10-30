@@ -46,7 +46,8 @@ export const pedido = mysqlTable(
     telefono: varchar("telefono", { length: 32 }).notNull(),
     metodoEnvioId: ref("metodo_envio_id").references(() => metodoEnvio.id, { onDelete: "set null" }),
     envioNombre: varchar("envio_nombre", { length: 120 }).notNull(),
-    envioTipo: mysqlEnum("envio_tipo", ["envio", "recogida"]).notNull(),
+    // «sin_envio»: inscripciones a cursos (no hay nada que enviar).
+    envioTipo: mysqlEnum("envio_tipo", ["envio", "recogida", "sin_envio"]).notNull(),
     direccion: json("direccion").$type<DireccionEnvio | null>(),
     notas: text("notas"),
     subtotal: int("subtotal").notNull(), // productos, IVA incl.
@@ -81,7 +82,9 @@ export const pedidoLinea = mysqlTable(
     pedidoId: ref("pedido_id")
       .notNull()
       .references(() => pedido.id, { onDelete: "cascade" }),
+    tipo: mysqlEnum("tipo", ["producto", "curso", "plaza"]).notNull().default("producto"),
     productoId: ref("producto_id").references(() => producto.id, { onDelete: "set null" }),
+    cursoId: ref("curso_id"),
     referencia: varchar("referencia", { length: 40 }).notNull(),
     nombre: varchar("nombre", { length: 200 }).notNull(),
     precio: int("precio").notNull(), // unitario cobrado (con la oferta ya aplicada)
