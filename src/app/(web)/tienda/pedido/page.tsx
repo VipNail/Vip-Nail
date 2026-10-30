@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Aviso, Boton } from "@/components/ui/campo";
+import { pedidoConCurso } from "@/features/cuenta/acciones";
 import { pagarPedido } from "@/features/tienda/acciones-web";
 import { desgloseIva } from "@/features/tienda/calculo";
 import { pedidoPublico, textoEstado } from "@/features/tienda/pedidos";
@@ -28,6 +29,7 @@ export default async function Pedido({ searchParams }: PageProps<"/tienda/pedido
   const aviso = typeof sp.aviso === "string" ? AVISOS[sp.aviso] : undefined;
   const est = textoEstado(p.estado, p.envioTipo);
   const iva = desgloseIva(p.lineas, p.envio);
+  const cuenta = await pedidoConCurso(p.numero, p.tokenAcceso);
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 py-6">
@@ -100,6 +102,19 @@ export default async function Pedido({ searchParams }: PageProps<"/tienda/pedido
           </p>
         ) : (
           <p>Recogida en el estudio. Te avisaremos cuando esté listo.</p>
+        )}
+        {cuenta && (
+          <p className="mt-3">
+            {cuenta.userId ? (
+              <Link href="/cuenta" className="font-medium underline underline-offset-4">
+                Entra a tus cursos →
+              </Link>
+            ) : (
+              <Link href={`/cuenta/activar?n=${encodeURIComponent(p.numero)}&t=${encodeURIComponent(p.tokenAcceso)}`} className="font-medium underline underline-offset-4">
+                Crea tu contraseña para entrar a tus cursos →
+              </Link>
+            )}
+          </p>
         )}
       </section>
 
