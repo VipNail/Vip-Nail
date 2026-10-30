@@ -4,7 +4,7 @@ import { and, eq, gt, inArray, isNull, ne, or } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/db";
-import { actividad, cita, cliente, pedido } from "@/db/schema";
+import { accesoCurso, actividad, cita, cliente, pedido, plaza } from "@/db/schema";
 import { exigirEquipo } from "@/lib/sesion";
 import { normalizarTelefono } from "./buscar";
 
@@ -99,7 +99,7 @@ export async function guardarClienta(_: EstadoFormulario, formData: FormData): P
 
 /**
  * Fusiona la ficha «duplicada» dentro de la «principal»: le pasa sus citas (y en el futuro
- * pedidos y cursos), completa los datos que faltan, une etiquetas y notas, y borra la duplicada.
+ * pedidos, cursos y plazas), completa los datos que faltan, une etiquetas y notas, y borra la duplicada.
  */
 export async function fusionarClientas(formData: FormData): Promise<void> {
   const yo = await exigirEquipo("clientas.gestionar");
@@ -121,7 +121,12 @@ export async function fusionarClientas(formData: FormData): Promise<void> {
 
     await tx.update(cita).set({ clienteId: a.id }).where(eq(cita.clienteId, b.id));
     await tx.update(pedido).set({ clienteId: a.id }).where(eq(pedido.clienteId, b.id));
-    // DEBT: cuando existan accesos a cursos y plazas, moverlos aquí también.
+    // Cursos online: si las dos tenían el mismo curso, se queda el acceso de la principal.
+    const suyos = await tx.select({ cursoId: accesoCurso.cursoId }).from(accesoCurso).where(eq(accesoCurso.clienteId, a.id));
+    const repetidos = suyos.map((x) => x.cursoId);
+    if (repetidos.length) await tx.delete(accesoCurso).where(and(eq(accesoCurso.clienteId, b.id), inArray(accesoCurso.cursoId, repetidos)));
+    await tx.update(accesoCurso).set({ clienteId: a.id }).where(eq(accesoCurso.clienteId, b.id));
+    await tx.update(plaza).set({ clienteId: a.id }).where(eq(plaza.clienteId, b.id));
 
     const etiquetas = [...new Set([...(a.etiquetas ?? []), ...(b.etiquetas ?? [])])];
     const notas = [a.notas, b.notas].filter(Boolean).join("\n— Fusionada —\n") || null;

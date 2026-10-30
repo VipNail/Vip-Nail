@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, count, desc, eq, isNull, like, ne, or, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { cita, cliente, pedido, servicio, staff } from "@/db/schema";
+import { academiaDeClienta } from "@/features/academia/consultas";
 import { normalizarTelefono } from "./buscar";
 
 export const POR_PAGINA = 30;
@@ -154,7 +155,14 @@ export async function datosParaExportar(id: string) {
       entrega: p.envioNombre,
       direccion: p.direccion,
     })),
-    // Los cursos se añadirán aquí cuando exista la academia.
+    ...(await academiaParaExportar(id)),
   };
 }
 
+async function academiaParaExportar(id: string) {
+  const a = await academiaDeClienta(id);
+  return {
+    cursosOnline: a.accesos.map((x) => ({ curso: x.titulo, origen: x.origen, desde: x.desde.toISOString() })),
+    cursosPresenciales: a.plazas.map((x) => ({ curso: x.titulo, fecha: x.inicio.toISOString(), estado: x.estado, pagado: x.importePagado / 100 })),
+  };
+}
