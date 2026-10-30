@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Aviso } from "@/components/ui/campo";
 import { BotonConfirmar } from "@/app/(crm)/crm/equipo/editar/confirmar";
+import { academiaDeClienta, TEXTO_PLAZA } from "@/features/academia/consultas";
 import { ESTADO_CITA } from "@/features/agenda/estados";
 import { borrarClienta, fusionarClientas } from "@/features/clientas/acciones";
 import { buscarParaFusion, fichaClienta } from "@/features/clientas/consultas";
@@ -37,7 +38,8 @@ export default async function Ficha({ searchParams }: PageProps<"/crm/clientas/f
   const f = typeof sp.id === "string" ? await fichaClienta(sp.id) : null;
   if (!f || f.clienta.borradaAt) notFound();
   const { clienta: c, citas, proximas, resumen } = f;
-  const pedidos = verPedidos ? await pedidosDeClienta(c.id) : [];
+  const verCursos = tienePermiso(yo.rol, "cursos.gestionar");
+  const [pedidos, academia] = await Promise.all([verPedidos ? pedidosDeClienta(c.id) : Promise.resolve([]), academiaDeClienta(c.id)]);
   const aviso = typeof sp.aviso === "string" ? AVISOS[sp.aviso] : undefined;
 
   const fusionar = gestiona && sp.fusionar === "1";
@@ -157,7 +159,36 @@ export default async function Ficha({ searchParams }: PageProps<"/crm/clientas/f
               })}
             </ul>
           )}
-          <p className="text-xs text-texto-suave">Los cursos aparecerán aquí cuando esté la academia.</p>
+        </section>
+      )}
+
+      {(academia.accesos.length > 0 || academia.plazas.length > 0) && (
+        <section className="flex flex-col gap-3">
+          <h2 className="font-medium">Cursos</h2>
+          <ul className="flex flex-col gap-2">
+            {academia.plazas.map((p) => (
+              <li key={p.id}>
+                <Link href={verCursos ? `/crm/cursos/convocatoria?id=${p.convocatoriaId}` : "#"} className="flex items-center gap-3 rounded-lg border border-borde bg-superficie px-3 py-2 hover:border-marca">
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate font-medium">{p.titulo}</span>
+                    <span className="text-sm text-texto-suave">Presencial · {dia.format(p.inicio)}</span>
+                  </span>
+                  <span className={`shrink-0 rounded-full border px-2 text-xs ${TEXTO_PLAZA[p.estado].clase}`}>{TEXTO_PLAZA[p.estado].texto}</span>
+                </Link>
+              </li>
+            ))}
+            {academia.accesos.map((a) => (
+              <li key={a.id}>
+                <Link href={verCursos ? `/crm/cursos/ver?id=${a.cursoId}#alumnas` : "#"} className="flex items-center gap-3 rounded-lg border border-borde bg-superficie px-3 py-2 hover:border-marca">
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate font-medium">{a.titulo}</span>
+                    <span className="text-sm text-texto-suave">Online · desde {dia.format(a.desde)}</span>
+                  </span>
+                  <span className="shrink-0 rounded-full border border-marca px-2 text-xs text-marca">Con acceso</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
