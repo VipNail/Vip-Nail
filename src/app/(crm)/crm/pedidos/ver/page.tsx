@@ -17,7 +17,7 @@ const AVISOS: Record<string, { texto: string; ok: boolean }> = {
   preparando: { texto: "Marcado como «preparando».", ok: true },
   enviado: { texto: "Marcado como enviado / listo para recoger.", ok: true },
   cancelado: { texto: "Pedido cancelado.", ok: true },
-  reembolsado: { texto: "Pedido devuelto y stock repuesto. Recuerda devolver el dinero desde la pasarela de pago.", ok: true },
+  reembolsado: { texto: "Pedido devuelto (stock repuesto, acceso o plaza anulados). Recuerda devolver el dinero desde la pasarela de pago.", ok: true },
   nota: { texto: "Guardado.", ok: true },
   "no-permitido": { texto: "Ese cambio no se puede hacer en el estado actual del pedido.", ok: false },
 };
@@ -64,7 +64,7 @@ export default async function VerPedido({ searchParams }: PageProps<"/crm/pedido
       {p.incidencia && <Aviso>⚠ {p.incidencia}</Aviso>}
 
       {/* Siguiente paso según el estado */}
-      {(p.estado === "pagado" || p.estado === "preparando") && (
+      {(p.estado === "pagado" || p.estado === "preparando") && p.envioTipo !== "sin_envio" && (
         <section className="flex flex-col gap-3 rounded-xl border border-marca p-4">
           <h2 className="font-medium">Siguiente paso</h2>
           {p.estado === "pagado" && <Cambio id={p.id} estado="preparando" texto="Empezar a prepararlo" secundario />}
@@ -102,6 +102,8 @@ export default async function VerPedido({ searchParams }: PageProps<"/crm/pedido
               <br />
               {p.direccion.cp} {p.direccion.ciudad} ({p.direccion.provincia})
             </p>
+          ) : p.envioTipo === "sin_envio" ? (
+            <p>Inscripción a curso: el acceso o la plaza se confirman solos al pagar.</p>
           ) : (
             <p>Recoge en el estudio.</p>
           )}
@@ -170,7 +172,7 @@ export default async function VerPedido({ searchParams }: PageProps<"/crm/pedido
           id={p.id}
           estado="reembolsado"
           texto="Cancelar y devolver"
-          pregunta={`¿Cancelar el pedido ${p.numero}? El stock vuelve a la tienda y tendrás que devolver ${euros(p.total)} desde la pasarela de pago.`}
+          pregunta={`¿Cancelar el pedido ${p.numero}? ${p.envioTipo === "sin_envio" ? "Se quita el acceso al curso o se libera la plaza" : "El stock vuelve a la tienda"} y tendrás que devolver ${euros(p.total)} desde la pasarela de pago.`}
         />
       )}
     </main>
