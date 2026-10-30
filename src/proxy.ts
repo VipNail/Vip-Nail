@@ -1,6 +1,6 @@
 // Se ejecuta antes de cada petición:
 // 1) Quien entra por «www.» se redirige al dominio sin www (una sola dirección = un solo login y mejor SEO).
-// 2) Sin cookie de sesión, /crm manda a /entrar. No es la seguridad real (eso lo hace
+// 2) Sin cookie de sesión, /crm manda a /entrar y /cuenta a /cuenta/entrar. No es la seguridad real (eso lo hace
 //    exigirEquipo() en servidor), solo evita una ida y vuelta.
 import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse, type NextRequest } from "next/server";
@@ -20,6 +20,10 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if ((pathname === "/crm" || pathname.startsWith("/crm/")) && !getSessionCookie(request)) {
     return NextResponse.redirect(new URL("/entrar", request.url));
+  }
+  const libre = pathname.startsWith("/cuenta/entrar") || pathname.startsWith("/cuenta/activar");
+  if ((pathname === "/cuenta" || pathname.startsWith("/cuenta/")) && !libre && !getSessionCookie(request)) {
+    return NextResponse.redirect(new URL("/cuenta/entrar", request.url));
   }
   return NextResponse.next();
 }
