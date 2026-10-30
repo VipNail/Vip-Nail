@@ -33,7 +33,7 @@ const nextConfig: NextConfig = {
       },
       // El CRM y el login nunca se indexan
       {
-        source: "/(crm|entrar|instalar|sin-acceso)(.*)",
+        source: "/(crm|entrar|instalar|sin-acceso|cuenta)(.*)",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
     ];
