@@ -17,6 +17,9 @@ export default function LayoutAcademia({ children }: LayoutProps<"/academia">) {
           <Link href="/tienda" className="ml-auto text-sm text-texto-suave underline-offset-4 hover:underline">
             Tienda
           </Link>
+          <Link href="/cuenta" className="rounded-full border border-marca px-3 py-1.5 text-sm font-medium text-marca">
+            Mis cursos
+          </Link>
         </div>
       </header>
       <div className="flex flex-1 flex-col">
